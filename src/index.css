@@ -1,0 +1,52 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+:root {
+  --bg:       #000000;
+  --surface:  #0d0d0d;
+  --surface2: #161616;
+  --border:   #222222;
+  --border2:  #333333;
+  --green:    #c8ff00;
+  --white:    #ffffff;
+  --off:      #999999;
+  --dim:      #555555;
+  --dim2:     #2a2a2a;
+  --pos:      #c8ff00;
+  --neg:      #ff4f3b;
+  --warn:     #ffe566;
+  --font:     'VT323', monospace;
+}
+
+html {
+  /* Prevent font scaling on orientation change */
+  -webkit-text-size-adjust: 100%;
+}
+
+html, body, #root {
+  height: 100%;
+  background: var(--bg);
+  color: var(--white);
+  font-family: var(--font);
+}
+
+button {
+  font-family: var(--font);
+  cursor: pointer;
+  /* Better touch targets */
+  min-height: 36px;
+}
+
+input, select, textarea {
+  font-family: var(--font);
+  /* Prevent zoom on focus on iOS */
+  font-size: max(16px, 1em);
+}
+
+::-webkit-scrollbar { width: 2px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); }
