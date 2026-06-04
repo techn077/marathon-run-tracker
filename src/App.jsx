@@ -153,11 +153,14 @@ export default function App() {
   }
 
   const handleEditRun = async (id, formData) => {
-    const { data, error } = await supabase.from('runs').update(formData).eq('id', id)
+    const { error } = await supabase.from('runs').update(formData).eq('id', id)
     if (error) { alert('Error updating run: ' + error.message); return }
-    setRuns(prev => prev.map(r => r.id === id ? data : r))
+    // Merge updated fields into local state — no refetch needed
+    setRuns(prev => prev.map(r => r.id === id ? { ...r, ...formData } : r))
+    // Force view to re-render by briefly setting to empty then back to detail
+    setView('empty')
     setSelectedId(id)
-    setView('detail')
+    setTimeout(() => setView('detail'), 0)
   }
 
   const handleSelectRun = (id) => {

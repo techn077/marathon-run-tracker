@@ -103,6 +103,17 @@ export default function ChartView({ runs, onBack }) {
 
   const selStyle = (active) => ({ ...s.select, borderColor: active ? 'var(--green)' : 'var(--border)' })
 
+  // Filtered stats
+  const filteredStats = {
+    net: filtered.reduce((s, r) => s + (r.credits || 0), 0),
+    extractions: filtered.filter(r => r.outcome === 'Extracted').length,
+    deaths: filtered.filter(r => r.outcome === 'Died').length,
+    abandoned: filtered.filter(r => r.outcome === 'Abandoned').length,
+    rate: filtered.length > 0
+      ? Math.round((filtered.filter(r => r.outcome === 'Extracted').length / filtered.length) * 100)
+      : null,
+  }
+
   return (
     <div>
       <div style={s.title}>Cumulative P&L</div>
@@ -157,6 +168,34 @@ export default function ChartView({ runs, onBack }) {
       <div style={s.filterCount}>
         {filtered.length} of {runs.length} run{runs.length !== 1 ? 's' : ''}
         {hasFilters ? ' (filtered)' : ''}
+      </div>
+
+      {/* Filtered stats grid */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(5, 1fr)',
+        border: '1px solid var(--border)',
+        marginBottom: 16,
+      }}>
+        {[
+          { label: 'Net P&L',     val: (filteredStats.net >= 0 ? '+' : '') + filteredStats.net, color: filteredStats.net > 0 ? 'var(--pos)' : filteredStats.net < 0 ? 'var(--neg)' : 'var(--white)' },
+          { label: 'Extractions', val: filteredStats.extractions, color: 'var(--pos)' },
+          { label: 'Deaths',      val: filteredStats.deaths,      color: 'var(--neg)' },
+          { label: 'Abandoned',   val: filteredStats.abandoned,   color: 'var(--warn)' },
+          { label: 'Survival',    val: filteredStats.rate !== null ? filteredStats.rate + '%' : '—', color: 'var(--warn)' },
+        ].map((stat, i, arr) => (
+          <div key={stat.label} style={{
+            padding: '8px 12px',
+            borderRight: i < arr.length - 1 ? '1px solid var(--border)' : 'none',
+          }}>
+            <div style={{ fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', color: 'var(--dim)', marginBottom: 2 }}>
+              {stat.label}
+            </div>
+            <div style={{ fontSize: 26, lineHeight: 1, color: stat.color }}>
+              {stat.val}
+            </div>
+          </div>
+        ))}
       </div>
 
       {data.length === 0 ? (
