@@ -152,6 +152,14 @@ export default function App() {
     setView('list')
   }
 
+  const handleEditRun = async (id, formData) => {
+    const { data, error } = await supabase.from('runs').update(formData).eq('id', id).select().single()
+    if (error) { alert('Error updating run: ' + error.message); return }
+    setRuns(prev => prev.map(r => r.id === id ? data : r))
+    setSelectedId(id)
+    setView('detail')
+  }
+
   const handleSelectRun = (id) => {
     setSelectedId(id)
     setView('detail')
@@ -211,7 +219,7 @@ export default function App() {
               >
                 ← Back
               </button>
-              <RunDetail run={selectedRun} onDelete={handleDeleteRun} />
+              <RunDetail run={selectedRun} onDelete={handleDeleteRun} onEdit={handleEditRun} />
             </div>
           )}
           {view === 'detail' && !selectedRun && (
@@ -281,7 +289,7 @@ export default function App() {
             {view === 'list'   && <EmptyState />}
             {view === 'empty'  && <EmptyState />}
             {view === 'form'   && <RunForm onSubmit={handleNewRun} onCancel={() => setView('list')} />}
-            {view === 'detail' && selectedRun && <RunDetail run={selectedRun} onDelete={handleDeleteRun} />}
+            {view === 'detail' && selectedRun && <RunDetail run={selectedRun} onDelete={handleDeleteRun} onEdit={handleEditRun} />}
             {view === 'chart'  && <ChartView runs={runs} onBack={() => setView('list')} />}
           </div>
         </div>

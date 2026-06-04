@@ -2,6 +2,15 @@ import { useState } from 'react'
 import { MAPS, OUTCOMES, SHELLS, TEAM_SIZES } from '../constants'
 import useIsMobile from '../hooks/useIsMobile'
 
+// Fix: use local date instead of UTC to avoid off-by-one day issue
+function localToday() {
+  const d = new Date()
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 const base = {
   title: {
     fontSize: 16, letterSpacing: 4, textTransform: 'uppercase',
@@ -35,33 +44,38 @@ const base = {
 const selectStyle = {
   ...base.input,
   backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%23555'/%3E%3C/svg%3E")`,
-  backgroundRepeat: 'no-repeat',
-  backgroundPosition: 'right 10px center',
-  paddingRight: 28,
-  cursor: 'pointer',
+  backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center',
+  paddingRight: 28, cursor: 'pointer',
 }
 
-export default function RunForm({ onSubmit, onCancel }) {
+export default function RunForm({ onSubmit, onCancel, initialValues = null, isEditing = false }) {
   const isMobile = useIsMobile()
-  const today = new Date().toISOString().split('T')[0]
   const [form, setForm] = useState({
-    date: today, map: MAPS[0], outcome: OUTCOMES[0],
-    credits: '', shell: '', team_size: '', notes: '',
+    date:      initialValues?.date      || localToday(),
+    map:       initialValues?.map       || MAPS[0],
+    outcome:   initialValues?.outcome   || OUTCOMES[0],
+    credits:   initialValues?.credits   !== undefined ? String(initialValues.credits) : '',
+    shell:     initialValues?.shell     || '',
+    team_size: initialValues?.team_size || '',
+    notes:     initialValues?.notes     || '',
   })
   const [focused, setFocused] = useState(null)
 
-  const set = key => e => setForm(f => ({ ...f, [key]: e.target.value }))
-  const inp = key => ({ ...base.input, borderColor: focused === key ? 'var(--green)' : 'var(--border)' })
-  const sel = key => ({ ...selectStyle, borderColor: focused === key ? 'var(--green)' : 'var(--border)' })
-  const foc = key => () => setFocused(key)
+  const set  = key => e => setForm(f => ({ ...f, [key]: e.target.value }))
+  const inp  = key => ({ ...base.input,   borderColor: focused === key ? 'var(--green)' : 'var(--border)' })
+  const sel  = key => ({ ...selectStyle,  borderColor: focused === key ? 'var(--green)' : 'var(--border)' })
+  const foc  = key => () => setFocused(key)
   const blur = () => setFocused(null)
 
   const handleSubmit = () => {
     onSubmit({
-      date: form.date, map: form.map, outcome: form.outcome,
-      credits: parseInt(form.credits) || 0,
-      shell: form.shell || null, team_size: form.team_size || null,
-      notes: form.notes.trim() || null,
+      date:      form.date,
+      map:       form.map,
+      outcome:   form.outcome,
+      credits:   parseInt(form.credits) || 0,
+      shell:     form.shell     || null,
+      team_size: form.team_size || null,
+      notes:     form.notes.trim() || null,
     })
   }
 
@@ -73,7 +87,7 @@ export default function RunForm({ onSubmit, onCancel }) {
 
   return (
     <div>
-      <div style={base.title}>Log New Run</div>
+      <div style={base.title}>{isEditing ? 'Edit Run' : 'Log New Run'}</div>
       <div style={gridStyle}>
         <div style={base.group}>
           <label style={base.label}>Date</label>
@@ -120,17 +134,14 @@ export default function RunForm({ onSubmit, onCancel }) {
         onFocus={foc('notes')} onBlur={blur} />
 
       <div style={base.actions}>
-        <button
-          style={{ ...base.btn, borderColor: 'var(--green)', color: 'var(--green)' }}
+        <button style={{ ...base.btn, borderColor: 'var(--green)', color: 'var(--green)' }}
           onClick={handleSubmit}
           onMouseEnter={e => { e.target.style.background = 'var(--green)'; e.target.style.color = 'var(--bg)' }}
           onMouseLeave={e => { e.target.style.background = 'transparent'; e.target.style.color = 'var(--green)' }}
         >
-          Submit Run
+          {isEditing ? 'Save Changes' : 'Submit Run'}
         </button>
-        <button
-          style={base.btn}
-          onClick={onCancel}
+        <button style={base.btn} onClick={onCancel}
           onMouseEnter={e => { e.target.style.borderColor = 'var(--white)'; e.target.style.color = 'var(--white)' }}
           onMouseLeave={e => { e.target.style.borderColor = 'var(--border2)'; e.target.style.color = 'var(--off)' }}
         >
