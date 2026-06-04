@@ -153,7 +153,7 @@ export default function App() {
   }
 
   const handleEditRun = async (id, formData) => {
-    const { data, error } = await supabase.from('runs').update(formData).eq('id', id).select().single()
+    const { data, error } = await supabase.from('runs').update(formData).eq('id', id)
     if (error) { alert('Error updating run: ' + error.message); return }
     setRuns(prev => prev.map(r => r.id === id ? data : r))
     setSelectedId(id)
