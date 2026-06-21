@@ -7,9 +7,18 @@ const s = {
     border: '1px solid var(--border)', padding: '16px 18px', marginBottom: 14,
     display: 'grid', gridTemplateColumns: '1fr auto', gap: 12, alignItems: 'start',
   },
-  map: { fontSize: 28, letterSpacing: 3, textTransform: 'uppercase', color: 'var(--white)', marginBottom: 8 },
-  meta: { display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' },
+  map: { fontSize: 28, letterSpacing: 3, textTransform: 'uppercase', color: 'var(--white)', marginBottom: 6 },
+  meta: { display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 6 },
   metaItem: { fontSize: 15, color: 'var(--dim)', letterSpacing: 0.5 },
+  modeBadge: {
+    fontFamily: 'var(--font)', fontSize: 11, letterSpacing: 1.5, textTransform: 'uppercase',
+    padding: '2px 6px', border: '1px solid var(--border2)', color: 'var(--off)',
+  },
+  modeBadgeActive: {
+    fontFamily: 'var(--font)', fontSize: 11, letterSpacing: 1.5, textTransform: 'uppercase',
+    padding: '2px 6px', border: '1px solid var(--green)', color: 'var(--green)',
+    background: 'rgba(200,255,0,0.06)',
+  },
   pnl: { fontSize: 48, textAlign: 'right', lineHeight: 1, marginBottom: 12 },
   kvRow: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 },
   kv: { border: '1px solid var(--border)', padding: '10px 14px' },
@@ -79,6 +88,15 @@ export default function RunDetail({ run, onDelete, onEdit }) {
             <span style={s.metaItem}>{run.date}</span>
             {run.runner && <span style={s.metaItem}>// {run.runner}</span>}
           </div>
+          {/* Mode badges */}
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            <span style={run.experimental ? s.modeBadgeActive : s.modeBadge}>
+              Experimental
+            </span>
+            <span style={run.ranked ? s.modeBadgeActive : s.modeBadge}>
+              Ranked
+            </span>
+          </div>
         </div>
         <div style={{ textAlign: 'right' }}>
           <div style={{ ...s.pnl, color: pnlColor }}>{credits >= 0 ? '+' : ''}{credits}</div>
@@ -104,14 +122,10 @@ export default function RunDetail({ run, onDelete, onEdit }) {
       )}
 
       <div style={s.actionsRow}>
-        <button
-          style={s.editBtn}
-          onClick={() => setEditing(true)}
+        <button style={s.editBtn} onClick={() => setEditing(true)}
           onMouseEnter={e => { e.target.style.background = 'var(--green)'; e.target.style.color = 'var(--bg)' }}
           onMouseLeave={e => { e.target.style.background = 'transparent'; e.target.style.color = 'var(--green)' }}
-        >
-          ✎ Edit Run
-        </button>
+        >✎ Edit Run</button>
       </div>
 
       <div style={s.deleteSection}>
@@ -124,10 +138,7 @@ export default function RunDetail({ run, onDelete, onEdit }) {
         ) : (
           <>
             <div style={s.confirmMsg}>Are you sure? This cannot be undone.</div>
-            <button style={s.delBtnConfirm} onClick={() => onDelete(run.id)}
-              onMouseEnter={e => { e.target.style.opacity = 0.85 }}
-              onMouseLeave={e => { e.target.style.opacity = 1 }}
-            >Yes, Delete It</button>
+            <button style={s.delBtnConfirm} onClick={() => onDelete(run.id)}>Yes, Delete It</button>
             <button style={s.cancelBtn} onClick={() => setConfirming(false)}
               onMouseEnter={e => { e.target.style.color = 'var(--white)'; e.target.style.borderColor = 'var(--white)' }}
               onMouseLeave={e => { e.target.style.color = 'var(--dim)'; e.target.style.borderColor = 'var(--border2)' }}
