@@ -10,10 +10,8 @@ const s = {
     color: 'var(--green)', marginBottom: 14, paddingBottom: 6,
     borderBottom: '1px solid var(--border)',
   },
-  filtersRow: {
-    display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 16,
-  },
-  filterGroup: { display: 'flex', flexDirection: 'column', gap: 4, minWidth: 120, flex: 1 },
+  filtersRow: { display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 12 },
+  filterGroup: { display: 'flex', flexDirection: 'column', gap: 4, minWidth: 110, flex: 1 },
   filterLabel: { fontSize: 12, letterSpacing: 2, textTransform: 'uppercase', color: 'var(--dim)' },
   select: {
     background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--white)',
@@ -31,7 +29,18 @@ const s = {
   clearBtn: {
     fontFamily: 'var(--font)', fontSize: 13, letterSpacing: 1, textTransform: 'uppercase',
     background: 'transparent', border: '1px solid var(--border2)', color: 'var(--dim)',
-    padding: '4px 10px', cursor: 'pointer', alignSelf: 'flex-end',
+    padding: '4px 10px', cursor: 'pointer', alignSelf: 'flex-end', whiteSpace: 'nowrap',
+  },
+  // Toggle button style for Experimental / Ranked
+  modeToggle: {
+    fontFamily: 'var(--font)', fontSize: 14, letterSpacing: 1, textTransform: 'uppercase',
+    padding: '5px 12px', cursor: 'pointer', transition: 'all 0.1s', border: '1px solid var(--border2)',
+    background: 'transparent', color: 'var(--dim)', whiteSpace: 'nowrap',
+  },
+  modeToggleActive: {
+    fontFamily: 'var(--font)', fontSize: 14, letterSpacing: 1, textTransform: 'uppercase',
+    padding: '5px 12px', cursor: 'pointer', transition: 'all 0.1s', border: '1px solid var(--green)',
+    background: 'rgba(200,255,0,0.08)', color: 'var(--green)', whiteSpace: 'nowrap',
   },
   filterCount: { fontSize: 14, color: 'var(--dim)', letterSpacing: 1, marginBottom: 12 },
   legend: { display: 'flex', gap: 18, marginBottom: 16, marginTop: 4, flexWrap: 'wrap' },
@@ -60,22 +69,60 @@ const CustomTooltip = ({ active, payload }) => {
   return (
     <div style={{ background: '#111', border: '1px solid #333', padding: '8px 12px', fontFamily: 'var(--font)' }}>
       <div style={{ fontSize: 16, textTransform: 'uppercase', color: '#fff', marginBottom: 4 }}>{d.map}</div>
-      <div style={{ fontSize: 13, color: '#666' }}>{d.date} {d.shell ? `// ${d.shell}` : ''}</div>
+      <div style={{ fontSize: 13, color: '#666', marginBottom: 2 }}>
+        {d.date}{d.shell ? ` // ${d.shell}` : ''}
+      </div>
+      {(d.experimental || d.ranked) && (
+        <div style={{ fontSize: 12, color: 'var(--green)', marginBottom: 4, letterSpacing: 1 }}>
+          {[d.experimental && 'Experimental', d.ranked && 'Ranked'].filter(Boolean).join(' · ')}
+        </div>
+      )}
       <div style={{ fontSize: 14, color: d.pnl >= 0 ? '#c8ff00' : '#ff4f3b' }}>Run: {d.pnl >= 0 ? '+' : ''}{d.pnl}</div>
       <div style={{ fontSize: 14, color: d.cum >= 0 ? '#c8ff00' : '#ff4f3b' }}>Total: {d.cum >= 0 ? '+' : ''}{d.cum}</div>
     </div>
   )
 }
 
-const TEAM_OPTIONS = [{ value: '', label: 'All Sizes' }, { value: '1', label: 'Solo' }, { value: '2', label: 'Duo' }, { value: '3', label: 'Trio' }]
+const TEAM_OPTIONS = [
+  { value: '', label: 'All Sizes' },
+  { value: '1', label: 'Solo' },
+  { value: '2', label: 'Duo' },
+  { value: '3', label: 'Trio' },
+]
+
+// null = no filter, true = only this mode, false = exclude this mode
+const MODE_STATES = [null, true, false]
+const modeLabel = (val, name) => {
+  if (val === null)  return name
+  if (val === true)  return `✓ ${name}`
+  if (val === false) return `✕ ${name}`
+}
 
 export default function ChartView({ runs, onBack }) {
   const isMobile = useIsMobile()
-  const [filters, setFilters] = useState({ map: '', shell: '', outcome: '', team: '', dateFrom: '', dateTo: '' })
+  const [filters, setFilters] = useState({
+    map: '', shell: '', outcome: '', team: '',
+    dateFrom: '', dateTo: '',
+    experimental: null,  // null | true | false
+    ranked: null,
+  })
 
   const setFilter = key => e => setFilters(f => ({ ...f, [key]: e.target.value }))
-  const clearFilters = () => setFilters({ map: '', shell: '', outcome: '', team: '', dateFrom: '', dateTo: '' })
-  const hasFilters = Object.values(filters).some(v => v !== '')
+
+  // Cycle through null → true → false → null
+  const cycleMode = key => () => setFilters(f => {
+    const current = f[key]
+    const next = current === null ? true : current === true ? false : null
+    return { ...f, [key]: next }
+  })
+
+  const clearFilters = () => setFilters({
+    map: '', shell: '', outcome: '', team: '',
+    dateFrom: '', dateTo: '', experimental: null, ranked: null,
+  })
+
+  const hasFilters = filters.map || filters.shell || filters.outcome || filters.team ||
+    filters.dateFrom || filters.dateTo || filters.experimental !== null || filters.ranked !== null
 
   const filtered = useMemo(() => {
     return runs.filter(r => {
@@ -85,11 +132,17 @@ export default function ChartView({ runs, onBack }) {
       if (filters.team    && r.team_size !== filters.team)    return false
       if (filters.dateFrom && r.date < filters.dateFrom)      return false
       if (filters.dateTo   && r.date > filters.dateTo)        return false
+      if (filters.experimental === true  && !r.experimental)  return false
+      if (filters.experimental === false &&  r.experimental)  return false
+      if (filters.ranked === true  && !r.ranked)              return false
+      if (filters.ranked === false &&  r.ranked)              return false
       return true
     })
   }, [runs, filters])
 
-  const sorted = [...filtered].sort((a, b) => a.date.localeCompare(b.date) || (a.created_at || '').localeCompare(b.created_at || ''))
+  const sorted = [...filtered].sort((a, b) =>
+    a.date.localeCompare(b.date) || (a.created_at || '').localeCompare(b.created_at || '')
+  )
   let cum = 0
   const data = sorted.map((r, i) => {
     cum += (r.credits || 0)
@@ -97,28 +150,28 @@ export default function ChartView({ runs, onBack }) {
       i: i + 1, map: r.map, date: r.date,
       pnl: r.credits || 0, cum,
       outcome: r.outcome, shell: r.shell, team_size: r.team_size,
+      experimental: r.experimental, ranked: r.ranked,
       label: r.map.split(' ')[0].substring(0, 5).toUpperCase(),
     }
   })
 
-  const selStyle = (active) => ({ ...s.select, borderColor: active ? 'var(--green)' : 'var(--border)' })
-
-  // Filtered stats
   const filteredStats = {
     net: filtered.reduce((s, r) => s + (r.credits || 0), 0),
     extractions: filtered.filter(r => r.outcome === 'Extracted').length,
-    deaths: filtered.filter(r => r.outcome === 'Died').length,
-    abandoned: filtered.filter(r => r.outcome === 'Abandoned').length,
+    deaths:      filtered.filter(r => r.outcome === 'Died').length,
+    abandoned:   filtered.filter(r => r.outcome === 'Abandoned').length,
     rate: filtered.length > 0
       ? Math.round((filtered.filter(r => r.outcome === 'Extracted').length / filtered.length) * 100)
       : null,
   }
 
+  const selStyle = active => ({ ...s.select, borderColor: active ? 'var(--green)' : 'var(--border)' })
+
   return (
     <div>
       <div style={s.title}>Cumulative P&L</div>
 
-      {/* FILTERS */}
+      {/* ── FILTERS ── */}
       <div style={s.filtersRow}>
         <div style={s.filterGroup}>
           <label style={s.filterLabel}>Map</label>
@@ -149,33 +202,53 @@ export default function ChartView({ runs, onBack }) {
         </div>
         <div style={s.filterGroup}>
           <label style={s.filterLabel}>Date From</label>
-          <input type="date" value={filters.dateFrom} onChange={setFilter('dateFrom')} style={{ ...s.input, borderColor: filters.dateFrom ? 'var(--green)' : 'var(--border)' }} />
+          <input type="date" value={filters.dateFrom} onChange={setFilter('dateFrom')}
+            style={{ ...s.input, borderColor: filters.dateFrom ? 'var(--green)' : 'var(--border)' }} />
         </div>
         <div style={s.filterGroup}>
           <label style={s.filterLabel}>Date To</label>
-          <input type="date" value={filters.dateTo} onChange={setFilter('dateTo')} style={{ ...s.input, borderColor: filters.dateTo ? 'var(--green)' : 'var(--border)' }} />
+          <input type="date" value={filters.dateTo} onChange={setFilter('dateTo')}
+            style={{ ...s.input, borderColor: filters.dateTo ? 'var(--green)' : 'var(--border)' }} />
         </div>
+      </div>
+
+      {/* ── MODE TOGGLES ── */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+        <span style={{ fontSize: 12, letterSpacing: 2, textTransform: 'uppercase', color: 'var(--dim)', marginRight: 4 }}>
+          Mode:
+        </span>
+        <button
+          style={filters.experimental !== null ? s.modeToggleActive : s.modeToggle}
+          onClick={cycleMode('experimental')}
+          title="Click to cycle: All → Only Experimental → Exclude Experimental"
+        >
+          {modeLabel(filters.experimental, 'Experimental')}
+        </button>
+        <button
+          style={filters.ranked !== null ? s.modeToggleActive : s.modeToggle}
+          onClick={cycleMode('ranked')}
+          title="Click to cycle: All → Only Ranked → Exclude Ranked"
+        >
+          {modeLabel(filters.ranked, 'Ranked')}
+        </button>
         {hasFilters && (
-          <div style={{ display: 'flex', alignItems: 'flex-end' }}>
-            <button style={s.clearBtn} onClick={clearFilters}
-              onMouseEnter={e => { e.target.style.borderColor = 'var(--neg)'; e.target.style.color = 'var(--neg)' }}
-              onMouseLeave={e => { e.target.style.borderColor = 'var(--border2)'; e.target.style.color = 'var(--dim)' }}
-            >✕ Clear</button>
-          </div>
+          <button style={{ ...s.clearBtn, marginLeft: 'auto' }} onClick={clearFilters}
+            onMouseEnter={e => { e.target.style.borderColor = 'var(--neg)'; e.target.style.color = 'var(--neg)' }}
+            onMouseLeave={e => { e.target.style.borderColor = 'var(--border2)'; e.target.style.color = 'var(--dim)' }}
+          >✕ Clear All</button>
         )}
       </div>
 
+      {/* ── FILTER COUNT ── */}
       <div style={s.filterCount}>
         {filtered.length} of {runs.length} run{runs.length !== 1 ? 's' : ''}
         {hasFilters ? ' (filtered)' : ''}
       </div>
 
-      {/* Filtered stats grid */}
+      {/* ── FILTERED STATS ── */}
       <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(5, 1fr)',
-        border: '1px solid var(--border)',
-        marginBottom: 16,
+        display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)',
+        border: '1px solid var(--border)', marginBottom: 16,
       }}>
         {[
           { label: 'Net P&L',     val: (filteredStats.net >= 0 ? '+' : '') + filteredStats.net, color: filteredStats.net > 0 ? 'var(--pos)' : filteredStats.net < 0 ? 'var(--neg)' : 'var(--white)' },
@@ -185,19 +258,20 @@ export default function ChartView({ runs, onBack }) {
           { label: 'Survival',    val: filteredStats.rate !== null ? filteredStats.rate + '%' : '—', color: 'var(--warn)' },
         ].map((stat, i, arr) => (
           <div key={stat.label} style={{
-            padding: '8px 12px',
+            padding: '8px 10px',
             borderRight: i < arr.length - 1 ? '1px solid var(--border)' : 'none',
           }}>
             <div style={{ fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', color: 'var(--dim)', marginBottom: 2 }}>
               {stat.label}
             </div>
-            <div style={{ fontSize: 26, lineHeight: 1, color: stat.color }}>
+            <div style={{ fontSize: isMobile ? 20 : 26, lineHeight: 1, color: stat.color }}>
               {stat.val}
             </div>
           </div>
         ))}
       </div>
 
+      {/* ── CHART ── */}
       {data.length === 0 ? (
         <div style={s.noData}>No runs match the selected filters</div>
       ) : (
@@ -221,6 +295,7 @@ export default function ChartView({ runs, onBack }) {
         </>
       )}
 
+      {/* ── BREAKDOWN TABLE ── */}
       <div style={s.sep} />
       <div style={s.title}>Breakdown</div>
 
@@ -231,13 +306,13 @@ export default function ChartView({ runs, onBack }) {
           <table style={s.tbl}>
             <thead>
               <tr>
-                {['#', 'Map', 'Date', 'Shell', 'Team', 'Outcome', 'Credits', 'Cumulative'].map(h => (
+                {['#', 'Map', 'Date', 'Shell', 'Team', 'Mode', 'Outcome', 'Credits', 'Cumulative'].map(h => (
                   <th key={h} style={s.th}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {data.map((d) => (
+              {data.map(d => (
                 <tr key={d.i}
                   onMouseEnter={e => Array.from(e.currentTarget.cells).forEach(c => c.style.background = 'var(--surface2)')}
                   onMouseLeave={e => Array.from(e.currentTarget.cells).forEach(c => c.style.background = 'transparent')}
@@ -247,6 +322,13 @@ export default function ChartView({ runs, onBack }) {
                   <td style={s.td}>{d.date}</td>
                   <td style={s.td}>{d.shell || '—'}</td>
                   <td style={s.td}>{d.team_size || '—'}</td>
+                  <td style={s.td}>
+                    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                      {d.experimental && <span style={{ fontSize: 11, letterSpacing: 1, color: 'var(--green)', border: '1px solid var(--green)', padding: '1px 4px' }}>EXP</span>}
+                      {d.ranked       && <span style={{ fontSize: 11, letterSpacing: 1, color: 'var(--green)', border: '1px solid var(--green)', padding: '1px 4px' }}>RNK</span>}
+                      {!d.experimental && !d.ranked && <span style={{ color: 'var(--dim)' }}>—</span>}
+                    </div>
+                  </td>
                   <td style={s.td}><Badge outcome={d.outcome} /></td>
                   <td style={{ ...s.td, color: d.pnl >= 0 ? 'var(--pos)' : 'var(--neg)' }}>{d.pnl >= 0 ? '+' : ''}{d.pnl}</td>
                   <td style={{ ...s.td, color: d.cum >= 0 ? 'var(--pos)' : 'var(--neg)' }}>{d.cum >= 0 ? '+' : ''}{d.cum}</td>
