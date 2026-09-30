@@ -1,14 +1,10 @@
 import { useState, useEffect } from 'react'
-import { MAPS, OUTCOMES, SHELLS, TEAM_SIZES } from '../constants'
+import { MAPS, OUTCOMES, SHELLS, TEAM_SIZES, MODES } from '../constants'
 import useIsMobile from '../hooks/useIsMobile'
 
-// Fix: use local date instead of UTC to avoid off-by-one day issue
 function localToday() {
   const d = new Date()
-  const year = d.getFullYear()
-  const month = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
 }
 
 const base = {
@@ -39,21 +35,6 @@ const base = {
     padding: '7px 16px', background: 'transparent', border: '1px solid var(--border2)',
     color: 'var(--off)', cursor: 'pointer', flex: 1,
   },
-  checkRow: {
-    display: 'flex', gap: 20, alignItems: 'center', flexWrap: 'wrap',
-    padding: '8px 0',
-  },
-  checkLabel: {
-    display: 'flex', alignItems: 'center', gap: 8,
-    fontSize: 18, letterSpacing: 1, textTransform: 'uppercase',
-    color: 'var(--off)', cursor: 'pointer', userSelect: 'none',
-  },
-  checkbox: {
-    width: 18, height: 18, appearance: 'none', WebkitAppearance: 'none',
-    background: 'var(--bg)', border: '1px solid var(--border2)',
-    cursor: 'pointer', position: 'relative', flexShrink: 0,
-    transition: 'border-color 0.1s',
-  },
 }
 
 const selectStyle = {
@@ -63,65 +44,72 @@ const selectStyle = {
   paddingRight: 28, cursor: 'pointer',
 }
 
-// Custom checkbox component styled to match the app
 function Checkbox({ checked, onChange, label }) {
   return (
-    <label style={base.checkLabel} onClick={onChange}>
+    <label
+      onClick={onChange}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer',
+        fontSize: 16, letterSpacing: 1, textTransform: 'uppercase',
+        color: checked ? 'var(--white)' : 'var(--off)', userSelect: 'none',
+      }}
+    >
       <div style={{
-        width: 18, height: 18,
+        width: 16, height: 16, flexShrink: 0,
         background: checked ? 'var(--green)' : 'var(--bg)',
         border: `1px solid ${checked ? 'var(--green)' : 'var(--border2)'}`,
-        flexShrink: 0,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        transition: 'all 0.1s', cursor: 'pointer',
+        transition: 'all 0.1s',
       }}>
-        {checked && <span style={{ fontSize: 14, color: 'var(--bg)', lineHeight: 1, marginTop: -1 }}>✓</span>}
+        {checked && <span style={{ fontSize: 12, color: 'var(--bg)', lineHeight: 1 }}>✓</span>}
       </div>
-      <span style={{ color: checked ? 'var(--white)' : 'var(--off)' }}>{label}</span>
+      {label}
     </label>
   )
 }
 
+const defaultModes = () => Object.fromEntries(MODES.map(m => [m.key, false]))
+
 export default function RunForm({ onSubmit, onCancel, initialValues = null, isEditing = false }) {
   const isMobile = useIsMobile()
   const [form, setForm] = useState({
-    date:            initialValues?.date            || localToday(),
-    map:             initialValues?.map             || MAPS[0],
-    outcome:         initialValues?.outcome         || OUTCOMES[0],
-    credits:         initialValues?.credits         !== undefined ? String(initialValues.credits) : '',
-    shell:           initialValues?.shell           || '',
-    team_size:       initialValues?.team_size       || '',
-    notes:           initialValues?.notes           || '',
-    experimental:    initialValues?.experimental    || false,
-    ranked:          initialValues?.ranked          || false,
+    date:      initialValues?.date      || localToday(),
+    map:       initialValues?.map       || MAPS[0],
+    outcome:   initialValues?.outcome   || OUTCOMES[0],
+    credits:   initialValues?.credits   !== undefined ? String(initialValues.credits) : '',
+    shell:     initialValues?.shell     || '',
+    team_size: initialValues?.team_size || '',
+    notes:     initialValues?.notes     || '',
+    ...defaultModes(),
+    // Override defaults with any saved values
+    ...Object.fromEntries(MODES.map(m => [m.key, initialValues?.[m.key] || false])),
   })
   const [focused, setFocused] = useState(null)
 
-  // When shell changes to Rook, force team_size to Solo
+  // Rook always solo
   useEffect(() => {
-    if (form.shell === 'Rook') {
-      setForm(f => ({ ...f, team_size: '1' }))
-    }
+    if (form.shell === 'Rook') setForm(f => ({ ...f, team_size: '1' }))
   }, [form.shell])
 
-  const set  = key => e => setForm(f => ({ ...f, [key]: e.target.value }))
+  const set    = key => e => setForm(f => ({ ...f, [key]: e.target.value }))
   const toggle = key => () => setForm(f => ({ ...f, [key]: !f[key] }))
-  const inp  = key => ({ ...base.input,  borderColor: focused === key ? 'var(--green)' : 'var(--border)' })
-  const sel  = key => ({ ...selectStyle, borderColor: focused === key ? 'var(--green)' : 'var(--border)' })
-  const foc  = key => () => setFocused(key)
-  const blur = () => setFocused(null)
+  const inp    = key => ({ ...base.input,   borderColor: focused === key ? 'var(--green)' : 'var(--border)' })
+  const sel    = key => ({ ...selectStyle,  borderColor: focused === key ? 'var(--green)' : 'var(--border)' })
+  const foc    = key => () => setFocused(key)
+  const blur   = () => setFocused(null)
+  const isRook = form.shell === 'Rook'
 
   const handleSubmit = () => {
+    const modeValues = Object.fromEntries(MODES.map(m => [m.key, form[m.key]]))
     onSubmit({
-      date:         form.date,
-      map:          form.map,
-      outcome:      form.outcome,
-      credits:      parseInt(form.credits) || 0,
-      shell:        form.shell     || null,
-      team_size:    form.team_size || null,
-      notes:        form.notes.trim() || null,
-      experimental: form.experimental,
-      ranked:       form.ranked,
+      date:      form.date,
+      map:       form.map,
+      outcome:   form.outcome,
+      credits:   parseInt(form.credits) || 0,
+      shell:     form.shell     || null,
+      team_size: form.team_size || null,
+      notes:     form.notes.trim() || null,
+      ...modeValues,
     })
   }
 
@@ -130,8 +118,6 @@ export default function RunForm({ onSubmit, onCancel, initialValues = null, isEd
     gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
     gap: isMobile ? 12 : 14,
   }
-
-  const isRook = form.shell === 'Rook'
 
   return (
     <div>
@@ -150,19 +136,6 @@ export default function RunForm({ onSubmit, onCancel, initialValues = null, isEd
             style={sel('map')} onFocus={foc('map')} onBlur={blur}>
             {MAPS.map(m => <option key={m}>{m}</option>)}
           </select>
-          {/* Checkboxes sit under the map dropdown */}
-          <div style={base.checkRow}>
-            <Checkbox
-              checked={form.experimental}
-              onChange={toggle('experimental')}
-              label="Experimental"
-            />
-            <Checkbox
-              checked={form.ranked}
-              onChange={toggle('ranked')}
-              label="Ranked"
-            />
-          </div>
         </div>
 
         <div style={base.group}>
@@ -188,29 +161,34 @@ export default function RunForm({ onSubmit, onCancel, initialValues = null, isEd
             <option value="">— Select —</option>
             {SHELLS.map(sh => <option key={sh}>{sh}</option>)}
           </select>
-          {isRook && (
-            <span style={{ fontSize: 13, color: 'var(--green)', letterSpacing: 1 }}>
-              ✓ Rook is always Solo
-            </span>
-          )}
+          {isRook && <span style={{ fontSize: 13, color: 'var(--green)', letterSpacing: 1 }}>✓ Rook is always Solo</span>}
         </div>
 
         <div style={base.group}>
           <label style={base.label}>Team Size</label>
           <select value={form.team_size} onChange={set('team_size')}
-            style={{
-              ...sel('team_size'),
-              opacity: isRook ? 0.4 : 1,
-              pointerEvents: isRook ? 'none' : 'auto',
-            }}
-            onFocus={foc('team_size')} onBlur={blur}
-            disabled={isRook}
-          >
+            style={{ ...sel('team_size'), opacity: isRook ? 0.4 : 1, pointerEvents: isRook ? 'none' : 'auto' }}
+            onFocus={foc('team_size')} onBlur={blur} disabled={isRook}>
             <option value="">— Select —</option>
             {TEAM_SIZES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
           </select>
         </div>
 
+      </div>
+
+      {/* Mode checkboxes */}
+      <div style={{ marginTop: 14 }}>
+        <label style={base.label}>Mode</label>
+        <div style={{
+          display: 'flex', flexWrap: 'wrap',
+          gap: isMobile ? '10px 16px' : '10px 24px',
+          marginTop: 8, padding: '10px 12px',
+          border: '1px solid var(--border)',
+        }}>
+          {MODES.map(m => (
+            <Checkbox key={m.key} checked={form[m.key]} onChange={toggle(m.key)} label={m.label} />
+          ))}
+        </div>
       </div>
 
       <div style={base.sep} />
@@ -221,21 +199,15 @@ export default function RunForm({ onSubmit, onCancel, initialValues = null, isEd
         onFocus={foc('notes')} onBlur={blur} />
 
       <div style={base.actions}>
-        <button
-          style={{ ...base.btn, borderColor: 'var(--green)', color: 'var(--green)' }}
+        <button style={{ ...base.btn, borderColor: 'var(--green)', color: 'var(--green)' }}
           onClick={handleSubmit}
           onMouseEnter={e => { e.target.style.background = 'var(--green)'; e.target.style.color = 'var(--bg)' }}
           onMouseLeave={e => { e.target.style.background = 'transparent'; e.target.style.color = 'var(--green)' }}
-        >
-          {isEditing ? 'Save Changes' : 'Submit Run'}
-        </button>
-        <button
-          style={base.btn} onClick={onCancel}
+        >{isEditing ? 'Save Changes' : 'Submit Run'}</button>
+        <button style={base.btn} onClick={onCancel}
           onMouseEnter={e => { e.target.style.borderColor = 'var(--white)'; e.target.style.color = 'var(--white)' }}
           onMouseLeave={e => { e.target.style.borderColor = 'var(--border2)'; e.target.style.color = 'var(--off)' }}
-        >
-          Cancel
-        </button>
+        >Cancel</button>
       </div>
     </div>
   )

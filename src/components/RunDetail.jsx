@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import Badge from './Badge'
 import RunForm from './RunForm'
+import { MODES } from '../constants'
 
 const s = {
   card: {
@@ -8,11 +9,11 @@ const s = {
     display: 'grid', gridTemplateColumns: '1fr auto', gap: 12, alignItems: 'start',
   },
   map: { fontSize: 28, letterSpacing: 3, textTransform: 'uppercase', color: 'var(--white)', marginBottom: 6 },
-  meta: { display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 6 },
+  meta: { display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 8 },
   metaItem: { fontSize: 15, color: 'var(--dim)', letterSpacing: 0.5 },
   modeBadge: {
     fontFamily: 'var(--font)', fontSize: 11, letterSpacing: 1.5, textTransform: 'uppercase',
-    padding: '2px 6px', border: '1px solid var(--border2)', color: 'var(--off)',
+    padding: '2px 6px', border: '1px solid var(--border2)', color: 'var(--dim)',
   },
   modeBadgeActive: {
     fontFamily: 'var(--font)', fontSize: 11, letterSpacing: 1.5, textTransform: 'uppercase',
@@ -54,7 +55,7 @@ const s = {
   confirmMsg: { fontSize: 16, color: 'var(--neg)', letterSpacing: 1, marginBottom: 10, textTransform: 'uppercase' },
 }
 
-const teamLabel = (ts) => {
+const teamLabel = ts => {
   if (ts === '3') return '3 — Trio'
   if (ts === '2') return '2 — Duo'
   if (ts === '1') return '1 — Solo'
@@ -66,12 +67,13 @@ export default function RunDetail({ run, onDelete, onEdit }) {
   const [editing, setEditing] = useState(false)
   const credits = run.credits || 0
   const pnlColor = credits >= 0 ? 'var(--pos)' : 'var(--neg)'
+  const activeModes = MODES.filter(m => run[m.key])
 
   if (editing) {
     return (
       <RunForm
         initialValues={run}
-        onSubmit={(data) => { onEdit(run.id, data); setEditing(false) }}
+        onSubmit={data => { onEdit(run.id, data); setEditing(false) }}
         onCancel={() => setEditing(false)}
         isEditing
       />
@@ -88,14 +90,12 @@ export default function RunDetail({ run, onDelete, onEdit }) {
             <span style={s.metaItem}>{run.date}</span>
             {run.runner && <span style={s.metaItem}>// {run.runner}</span>}
           </div>
-          {/* Mode badges */}
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            <span style={run.experimental ? s.modeBadgeActive : s.modeBadge}>
-              Experimental
-            </span>
-            <span style={run.ranked ? s.modeBadgeActive : s.modeBadge}>
-              Ranked
-            </span>
+            {MODES.map(m => (
+              <span key={m.key} style={run[m.key] ? s.modeBadgeActive : s.modeBadge}>
+                {m.label}
+              </span>
+            ))}
           </div>
         </div>
         <div style={{ textAlign: 'right' }}>
@@ -132,8 +132,8 @@ export default function RunDetail({ run, onDelete, onEdit }) {
         <div style={s.deleteLabel}>Danger Zone</div>
         {!confirming ? (
           <button style={s.delBtn} onClick={() => setConfirming(true)}
-            onMouseEnter={e => { e.target.style.background = '#1f0a08' }}
-            onMouseLeave={e => { e.target.style.background = 'transparent' }}
+            onMouseEnter={e => e.target.style.background = '#1f0a08'}
+            onMouseLeave={e => e.target.style.background = 'transparent'}
           >⚠ Delete This Run</button>
         ) : (
           <>
