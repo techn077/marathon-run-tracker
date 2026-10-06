@@ -1,18 +1,21 @@
 import { useState } from 'react'
 
-// Shell images live in /public/shells/<shellname>.webp
-// e.g. /public/shells/destroyer.webp
-// Falls back to a styled placeholder if the file isn't there yet
+// Tries each extension in order until one loads.
+// Supported: webp, png, jpg, jpeg
+// Files should live in /public/shells/<shellname>.<ext>
+// e.g. /public/shells/destroyer.png or /public/shells/destroyer.webp
+
+const EXTENSIONS = ['webp', 'png', 'jpg', 'jpeg']
 
 export default function ShellImage({ shell, size = 100 }) {
-  const [errored, setErrored] = useState(false)
+  const [extIndex, setExtIndex] = useState(0)
 
   if (!shell) return null
 
-  const src = `/shells/${shell.toLowerCase().replace(' ', '_')}.webp`
+  const base = `/shells/${shell.toLowerCase().replace(' ', '_')}`
+  const allExhausted = extIndex >= EXTENSIONS.length
 
-  if (errored) {
-    // Placeholder — shows shell initial until image is dropped in
+  if (allExhausted) {
     return (
       <div style={{
         width: size, height: size, flexShrink: 0,
@@ -24,10 +27,8 @@ export default function ShellImage({ shell, size = 100 }) {
       }}>
         <div style={{
           fontSize: Math.round(size * 0.38),
-          color: 'var(--dim)',
-          fontFamily: 'var(--font)',
-          lineHeight: 1,
-          letterSpacing: 2,
+          color: 'var(--dim)', fontFamily: 'var(--font)',
+          lineHeight: 1, letterSpacing: 2,
         }}>
           {shell[0].toUpperCase()}
         </div>
@@ -43,11 +44,12 @@ export default function ShellImage({ shell, size = 100 }) {
 
   return (
     <img
-      src={src}
+      key={extIndex}
+      src={`${base}.${EXTENSIONS[extIndex]}`}
       alt={shell}
       width={size}
       height={size}
-      onError={() => setErrored(true)}
+      onError={() => setExtIndex(i => i + 1)}
       style={{
         width: size, height: size, flexShrink: 0,
         objectFit: 'cover',
