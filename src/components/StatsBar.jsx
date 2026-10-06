@@ -1,59 +1,95 @@
 const s = {
   bar: { borderBottom: '1px solid var(--border)', flexShrink: 0 },
-  topRow: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', borderBottom: '1px solid var(--border)' },
-  pnlRow: { display: 'grid', gridTemplateColumns: '1fr 1fr' },
-  cell: { padding: '8px 14px', borderRight: '1px solid var(--border)' },
-  label: { fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', color: 'var(--dim)', marginBottom: 1 },
-  sublabel: { fontSize: 10, letterSpacing: 1.5, textTransform: 'uppercase', color: 'var(--dim)', marginBottom: 1 },
+  // Two-row grid: top = all time, bottom = since reset
+  grid: { display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)' },
+  cell: { padding: '7px 12px', borderRight: '1px solid var(--border)', borderBottom: '1px solid var(--border)' },
+  cellLast: { padding: '7px 12px', borderBottom: '1px solid var(--border)' },
+  resetCell: { padding: '7px 12px', borderRight: '1px solid var(--border)' },
+  resetCellLast: { padding: '7px 12px' },
+  rowLabel: {
+    fontSize: 9, letterSpacing: 2, textTransform: 'uppercase',
+    color: 'var(--dim)', marginBottom: 1,
+  },
+  statLabel: {
+    fontSize: 10, letterSpacing: 2, textTransform: 'uppercase',
+    color: 'var(--dim)', marginBottom: 2,
+  },
 }
 
 export default function StatsBar({ stats, isMobile }) {
-  const valSize = isMobile ? 24 : 36
-  const pnlSize = isMobile ? 22 : 32
+  const vs  = isMobile ? 20 : 28   // value font size
+  const fmt = n => (n >= 0 ? '+' : '') + n
+  const netColor = c => c > 0 ? 'var(--pos)' : c < 0 ? 'var(--neg)' : 'var(--white)'
 
-  const netColor  = c => c > 0 ? 'var(--pos)' : c < 0 ? 'var(--neg)' : 'var(--white)'
-  const fmt       = n => (n >= 0 ? '+' : '') + n
+  const COLS = [
+    {
+      label:       'P&L',
+      allVal:      fmt(stats.net),
+      allColor:    netColor(stats.net),
+      resetVal:    stats.sinceReset !== null ? fmt(stats.sinceReset) : '—',
+      resetColor:  stats.sinceReset !== null ? netColor(stats.sinceReset) : 'var(--dim)',
+    },
+    {
+      label:       'Extractions',
+      allVal:      stats.extractions,
+      allColor:    'var(--pos)',
+      resetVal:    stats.sinceResetExtractions !== null ? stats.sinceResetExtractions : '—',
+      resetColor:  stats.sinceResetExtractions !== null ? 'var(--pos)' : 'var(--dim)',
+    },
+    {
+      label:       'Deaths',
+      allVal:      stats.deaths,
+      allColor:    'var(--neg)',
+      resetVal:    stats.sinceResetDeaths !== null ? stats.sinceResetDeaths : '—',
+      resetColor:  stats.sinceResetDeaths !== null ? 'var(--neg)' : 'var(--dim)',
+    },
+    {
+      label:       isMobile ? 'Rate' : 'Survival %',
+      allVal:      stats.rate !== null ? `${stats.rate}%` : '—',
+      allColor:    'var(--warn)',
+      resetVal:    stats.sinceResetRate !== null ? `${stats.sinceResetRate}%` : '—',
+      resetColor:  stats.sinceResetRate !== null ? 'var(--warn)' : 'var(--dim)',
+    },
+    {
+      label:       'Runs',
+      allVal:      stats.total,
+      allColor:    'var(--white)',
+      resetVal:    stats.sinceResetTotal !== null ? stats.sinceResetTotal : '—',
+      resetColor:  stats.sinceResetTotal !== null ? 'var(--white)' : 'var(--dim)',
+    },
+  ]
 
   return (
     <div style={s.bar}>
-      {/* Top row: Extractions, Deaths, Survival Rate, (spacer) */}
-      <div style={s.topRow}>
-        <div style={s.cell}>
-          <div style={s.label}>Extractions</div>
-          <div style={{ fontSize: valSize, lineHeight: 1, color: 'var(--pos)' }}>{stats.extractions}</div>
-        </div>
-        <div style={s.cell}>
-          <div style={s.label}>Deaths</div>
-          <div style={{ fontSize: valSize, lineHeight: 1, color: 'var(--neg)' }}>{stats.deaths}</div>
-        </div>
-        <div style={s.cell}>
-          <div style={s.label}>{isMobile ? 'Rate' : 'Survival Rate'}</div>
-          <div style={{ fontSize: valSize, lineHeight: 1, color: 'var(--warn)' }}>
-            {stats.rate !== null ? `${stats.rate}%` : '—'}
+      {/* Column headers */}
+      <div style={{ ...s.grid, borderBottom: '1px solid var(--border)' }}>
+        {COLS.map((col, i) => (
+          <div key={col.label} style={{ padding: '4px 12px', borderRight: i < COLS.length-1 ? '1px solid var(--border)' : 'none' }}>
+            <div style={s.statLabel}>{col.label}</div>
           </div>
-        </div>
-        <div style={{ ...s.cell, borderRight: 'none' }}>
-          <div style={s.label}>Runs</div>
-          <div style={{ fontSize: valSize, lineHeight: 1, color: 'var(--white)' }}>{stats.total}</div>
-        </div>
+        ))}
       </div>
 
-      {/* P&L row: All Time | Since Reset */}
-      <div style={s.pnlRow}>
-        <div style={{ ...s.cell, borderRight: '1px solid var(--border)' }}>
-          <div style={s.sublabel}>All Time P&L</div>
-          <div style={{ fontSize: pnlSize, lineHeight: 1, color: netColor(stats.net) }}>
-            {fmt(stats.net)}
+      {/* All Time row */}
+      <div style={s.grid}>
+        {COLS.map((col, i) => (
+          <div key={col.label} style={i < COLS.length-1 ? s.cell : s.cellLast}>
+            <div style={{ ...s.rowLabel, color: 'var(--dim)' }}>All Time</div>
+            <div style={{ fontSize: vs, lineHeight: 1, color: col.allColor }}>{col.allVal}</div>
           </div>
-        </div>
-        <div style={{ ...s.cell, borderRight: 'none' }}>
-          <div style={s.sublabel}>
-            Since Reset {stats.lastResetDate ? `(${stats.lastResetDate})` : ''}
+        ))}
+      </div>
+
+      {/* Since Reset row */}
+      <div style={s.grid}>
+        {COLS.map((col, i) => (
+          <div key={col.label} style={i < COLS.length-1 ? s.resetCell : s.resetCellLast}>
+            <div style={{ ...s.rowLabel, color: 'var(--green)', opacity: 0.6 }}>
+              {stats.lastResetDate ? `Since ${isMobile ? stats.lastResetDate.slice(5) : stats.lastResetDate}` : 'Since Reset'}
+            </div>
+            <div style={{ fontSize: vs, lineHeight: 1, color: col.resetColor }}>{col.resetVal}</div>
           </div>
-          <div style={{ fontSize: pnlSize, lineHeight: 1, color: stats.sinceReset !== null ? netColor(stats.sinceReset) : 'var(--dim)' }}>
-            {stats.sinceReset !== null ? fmt(stats.sinceReset) : '—'}
-          </div>
-        </div>
+        ))}
       </div>
     </div>
   )

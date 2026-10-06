@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import Badge from './Badge'
 import RunForm from './RunForm'
+import ShellImage from './ShellImage'
 import { MODES } from '../constants'
 
 const s = {
@@ -23,7 +24,7 @@ const s = {
   pnl: { fontSize: 48, textAlign: 'right', lineHeight: 1, marginBottom: 12 },
   kvRow: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 },
   kv: { border: '1px solid var(--border)', padding: '10px 14px' },
-  kvLabel: { fontSize: 13, letterSpacing: 2, textTransform: 'uppercase', color: 'var(--dim)', marginBottom: 4 },
+  kvLabel: { fontSize: 13, letterSpacing: 2, textTransform: 'uppercase', color: 'var(--dim)', marginBottom: 6 },
   kvVal: { fontSize: 22, color: 'var(--white)' },
   notesBlock: { border: '1px solid var(--border)', padding: '12px 16px', marginTop: 10 },
   notesLabel: { fontSize: 14, letterSpacing: 3, textTransform: 'uppercase', color: 'var(--dim)', marginBottom: 8 },
@@ -67,7 +68,6 @@ export default function RunDetail({ run, onDelete, onEdit }) {
   const [editing, setEditing] = useState(false)
   const credits = run.credits || 0
   const pnlColor = credits >= 0 ? 'var(--pos)' : 'var(--neg)'
-  const activeModes = MODES.filter(m => run[m.key])
 
   if (editing) {
     return (
@@ -82,6 +82,7 @@ export default function RunDetail({ run, onDelete, onEdit }) {
 
   return (
     <div>
+      {/* Header card */}
       <div style={s.card}>
         <div>
           <div style={s.map}>{run.map}</div>
@@ -103,14 +104,18 @@ export default function RunDetail({ run, onDelete, onEdit }) {
         </div>
       </div>
 
+      {/* Shell + Team Size */}
       <div style={s.kvRow}>
         <div style={s.kv}>
           <div style={s.kvLabel}>Runner Shell</div>
-          <div style={s.kvVal}>{run.shell || '—'}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <ShellImage shell={run.shell} size={100} />
+            <div style={s.kvVal}>{run.shell || '—'}</div>
+          </div>
         </div>
         <div style={s.kv}>
           <div style={s.kvLabel}>Team Size</div>
-          <div style={s.kvVal}>{teamLabel(run.team_size)}</div>
+          <div style={{ ...s.kvVal, marginTop: 4 }}>{teamLabel(run.team_size)}</div>
         </div>
       </div>
 

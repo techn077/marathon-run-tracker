@@ -92,14 +92,25 @@ export default function App() {
     ? runs.filter(r => r.date >= lastReset.reset_date).reduce((s,r) => s + (r.credits||0), 0)
     : null
 
+  const sinceResetRuns = lastReset
+    ? runs.filter(r => r.date >= lastReset.reset_date)
+    : null
+
   const stats = {
-    total:         runs.length,
-    net:           runs.reduce((s,r) => s + (r.credits||0), 0),
-    extractions:   runs.filter(r => r.outcome === 'Extracted').length,
-    deaths:        runs.filter(r => r.outcome === 'Died').length,
-    rate:          runs.length > 0 ? Math.round(runs.filter(r=>r.outcome==='Extracted').length / runs.length * 100) : null,
+    total:       runs.length,
+    net:         runs.reduce((s,r) => s + (r.credits||0), 0),
+    extractions: runs.filter(r => r.outcome === 'Extracted').length,
+    deaths:      runs.filter(r => r.outcome === 'Died').length,
+    rate:        runs.length > 0 ? Math.round(runs.filter(r=>r.outcome==='Extracted').length / runs.length * 100) : null,
+    // Since reset stats
     sinceReset,
-    lastResetDate: lastReset?.reset_date || null,
+    lastResetDate:           lastReset?.reset_date || null,
+    sinceResetTotal:         sinceResetRuns ? sinceResetRuns.length : null,
+    sinceResetExtractions:   sinceResetRuns ? sinceResetRuns.filter(r => r.outcome === 'Extracted').length : null,
+    sinceResetDeaths:        sinceResetRuns ? sinceResetRuns.filter(r => r.outcome === 'Died').length : null,
+    sinceResetRate:          sinceResetRuns && sinceResetRuns.length > 0
+      ? Math.round(sinceResetRuns.filter(r => r.outcome === 'Extracted').length / sinceResetRuns.length * 100)
+      : sinceResetRuns ? 0 : null,
   }
 
   const handleNewRun = async (formData) => {
