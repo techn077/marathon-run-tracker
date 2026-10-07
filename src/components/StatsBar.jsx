@@ -9,12 +9,12 @@ const s = {
     padding: '8px 12px',
   },
   statLabel: {
-    fontSize: 10, letterSpacing: 2, textTransform: 'uppercase',
-    color: 'var(--dim)', marginBottom: 4,
+    fontSize: 13, letterSpacing: 2, textTransform: 'uppercase',
+    color: 'var(--off)', marginBottom: 4,
   },
   subLabel: {
-    fontSize: 9, letterSpacing: 1.5, textTransform: 'uppercase',
-    color: 'var(--green)', opacity: 0.55, marginTop: 5, marginBottom: 2,
+    fontSize: 12, letterSpacing: 1.5, textTransform: 'uppercase',
+    color: 'var(--green)', opacity: 0.75, marginTop: 5, marginBottom: 2,
   },
   divider: {
     height: 1, background: 'var(--border)', margin: '5px 0',
@@ -78,7 +78,7 @@ export default function StatsBar({ stats, isMobile }) {
             <div style={{ fontSize: vs, lineHeight: 1, color: col.allColor }}>
               {col.allVal}
             </div>
-            <div style={{ fontSize: 9, letterSpacing: 1.5, textTransform: 'uppercase', color: 'var(--dim)', marginTop: 2 }}>
+            <div style={{ fontSize: 12, letterSpacing: 1.5, textTransform: 'uppercase', color: 'var(--dim)', marginTop: 2 }}>
               All Time
             </div>
 

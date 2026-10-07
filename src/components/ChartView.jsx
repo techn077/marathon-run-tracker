@@ -28,6 +28,7 @@ const s = {
     background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--white)',
     fontFamily: 'var(--font)', fontSize: 16, padding: '5px 8px', outline: 'none',
     width: '100%', borderRadius: 0, transition: 'border-color 0.1s',
+    colorScheme: 'dark',
   },
   clearBtn: {
     fontFamily: 'var(--font)', fontSize: 13, letterSpacing: 1, textTransform: 'uppercase',
@@ -155,6 +156,7 @@ export default function ChartView({ runs, resets = [], onBack }) {
       outcome: r.outcome, shell: r.shell, team_size: r.team_size,
       ...Object.fromEntries(MODES.map(m => [m.key, r[m.key]])),
       label: r.map.split(' ')[0].substring(0, 5).toUpperCase(),
+      idx: i,
     }
   })
 
@@ -166,8 +168,8 @@ export default function ChartView({ runs, resets = [], onBack }) {
   // For the chart reference lines, we need to know the x-index where each reset falls
   // We'll use the reset date as a label threshold — find the first run index >= each reset date
   const resetLines = pastResets.map(reset => {
-    const idx = data.findIndex(d => d.date >= reset.reset_date)
-    return { ...reset, dataIndex: idx }
+    const found = data.find(d => d.date >= reset.reset_date)
+    return { ...reset, dataIndex: found ? found.idx : -1 }
   }).filter(r => r.dataIndex >= 0)
 
   const filteredStats = {
@@ -276,7 +278,7 @@ export default function ChartView({ runs, resets = [], onBack }) {
           <ResponsiveContainer width="100%" height={200}>
             <LineChart data={data} margin={{ top: 16, right: 20, left: 10, bottom: 5 }}>
               <CartesianGrid stroke="#1a1a1a" strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="label" tick={{ fontFamily: 'VT323', fontSize: 12, fill: '#444' }} axisLine={false} tickLine={false} />
+              <XAxis dataKey="idx" tickFormatter={(val) => data[val]?.label || ''} tick={{ fontFamily: 'VT323', fontSize: 12, fill: '#444' }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontFamily: 'VT323', fontSize: 12, fill: '#444' }} axisLine={false} tickLine={false} />
               <ReferenceLine y={0} stroke="#333" strokeDasharray="3 3" />
               <Tooltip content={<CustomTooltip />} />
@@ -285,7 +287,7 @@ export default function ChartView({ runs, resets = [], onBack }) {
               {resetLines.map(r => (
                 <ReferenceLine
                   key={r.id}
-                  x={data[r.dataIndex]?.label}
+                  x={r.dataIndex}
                   stroke="#ffe566"
                   strokeWidth={1}
                   strokeDasharray="4 3"
